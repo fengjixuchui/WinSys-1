@@ -3,10 +3,7 @@
 #include <string>
 #include "Enums.h"
 
-#ifdef WINSYS_NAMESPACE
 namespace WinSys {
-#endif
-
 	struct CpuNumber {
 		uint16_t Group;
 		uint8_t Number;
@@ -58,7 +55,7 @@ namespace WinSys {
 	public:
 		static std::unique_ptr<Thread> OpenById(uint32_t tid, ThreadAccessMask accessMask = ThreadAccessMask::QueryInformation);
 		explicit Thread(HANDLE handle, bool own = false);
-		explicit Thread(uint32_t tid, ThreadAccessMask accessMask = ThreadAccessMask::QueryInformation);
+		bool Open(uint32_t tid, ThreadAccessMask accessMask = ThreadAccessMask::QueryInformation);
 		~Thread();
 
 		HANDLE Handle() const {
@@ -75,17 +72,16 @@ namespace WinSys {
 		CpuNumber GetIdealProcessor() const;
 		bool Terminate(uint32_t exitCode = 0);
 		int GetMemoryPriority() const;
-		IoPriorityHint GetIoPriority() const;
+		IoPriority GetIoPriority() const;
 		size_t GetSubProcessTag() const;
-		std::wstring GetServiceNameByTag(uint32_t pid);
+		std::wstring GetServiceNameByTag(uint32_t pid) const;
 		ComFlags GetComFlags() const;
 
 	private:
-		HANDLE m_handle;
+		HANDLE m_handle{ nullptr };
 		bool m_own;
 	};
 
-#ifdef WINSYS_NAMESPACE
 }
-#endif
+
 

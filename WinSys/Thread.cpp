@@ -4,14 +4,20 @@
 #include "subprocesstag.h"
 #include "Processes.h"
 
-#ifdef WINSYS_NAMESPACE
 using namespace WinSys;
-#endif
 
 Thread::Thread(HANDLE handle, bool own) : m_handle(handle), m_own(own) {}
 
-Thread::Thread(uint32_t tid, ThreadAccessMask accessMask) : m_own(true) {
-	m_handle = ::OpenThread(static_cast<ACCESS_MASK>(accessMask), FALSE, tid);
+bool Thread::Open(uint32_t tid, ThreadAccessMask accessMask) {
+	auto hThread = ::OpenThread(static_cast<ACCESS_MASK>(accessMask), FALSE, tid);
+	if (!hThread)
+		return false;
+
+	if (m_own && m_handle)
+		::CloseHandle(m_handle);
+	m_handle = hThread;
+	m_own = true;
+	return true;
 }
 
 Thread::~Thread() {
@@ -26,8 +32,8 @@ int Thread::GetMemoryPriority() const {
 	return priority;
 }
 
-IoPriorityHint Thread::GetIoPriority() const {
-	auto priority = IoPriorityHint::Unknown;
+IoPriority Thread::GetIoPriority() const {
+	auto priority = IoPriority::Unknown;
 	ULONG len;
 	::NtQueryInformationThread(m_handle, ThreadIoPriority, &priority, sizeof(priority), &len);
 	return priority;
@@ -60,7 +66,7 @@ size_t Thread::GetSubProcessTag() const {
 	return tag;
 }
 
-std::wstring Thread::GetServiceNameByTag(uint32_t pid) {
+std::wstring Thread::GetServiceNameByTag(uint32_t pid) const {
 	static auto QueryTagInformation = (PQUERY_TAG_INFORMATION)::GetProcAddress(::GetModuleHandle(L"advapi32"), "I_QueryTagInformation");
 	if (QueryTagInformation == nullptr)
 		return L"";
@@ -135,7 +141,6 @@ CpuNumber Thread::GetIdealProcessor() const {
 	}
 	return number;
 }
-
 
 std::unique_ptr<Thread> Thread::OpenById(uint32_t tid, ThreadAccessMask accessMask) {
 	HANDLE hThread = ::OpenThread(static_cast<ACCESS_MASK>(accessMask), FALSE, tid);
